@@ -23,17 +23,13 @@ jobs:
             From `${{ github.head_ref }}` to `${{ github.base_ref }}`
             Event `${{ github.event_name }}`
             PR ${{ github.event.number }}: ${{ github.event.pull_request.url }}
-  build:
-
+  
+  testSend:
+    
     runs-on: macos-latest
 
     steps:
-    
-    - uses: actions/checkout@v2
-    - uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: 2.6
-        bundler-cache: true
+    - uses: actions/setup-ruby@v1
     - name: Send Webhook Notification
       if: always()
       env:
@@ -45,6 +41,18 @@ jobs:
         git clone https://github.com/DiscordHooks/github-actions-discord-webhook.git webhook
         bash webhook/send.sh $JOB_STATUS $WEBHOOK_URL
       shell: bash
+
+  build:
+
+    runs-on: macos-latest
+
+    steps:
+    
+    - uses: actions/checkout@v2
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
+        bundler-cache: true
     - name: Build and Run
       run: |
         bundle exec fastlane build_and_run_test
