@@ -34,8 +34,6 @@ jobs:
       with:
         ruby-version: 2.6
         bundler-cache: true
-    - uses: actions/setup-ruby@v1
-    - uses: actions/setup-ruby@v1
     - name: Send Webhook Notification
       if: always()
       env:
