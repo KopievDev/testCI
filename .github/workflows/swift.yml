@@ -81,5 +81,7 @@ jobs:
           color: 0xff0000
           username: GitHub Notification Failed
           avatar_url: ${{ secrets.AVATAR_URL }}
+          image: ${{ secrets.AVATAR_URL }}
+
 
  
