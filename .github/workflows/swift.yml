@@ -7,9 +7,8 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
-
-    runs-on: [macos-latest, ubuntu-latest]
+  send:
+    runs-on: ubuntu-latest
 
     steps:
     - name: Send start notification to Discord
@@ -24,6 +23,11 @@ jobs:
             From `${{ github.head_ref }}` to `${{ github.base_ref }}`
             Event `${{ github.event_name }}`
             PR ${{ github.event.number }}: ${{ github.event.pull_request.url }}
+  build:
+
+    runs-on: macos-latest
+
+    steps:
     - uses: actions/checkout@v2
     - uses: ruby/setup-ruby@v1
       with:
@@ -32,4 +36,4 @@ jobs:
     - name: Build and Run
       run: |
         bundle exec fastlane build_and_run_test
-
+ 
