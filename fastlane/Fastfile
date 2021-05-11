@@ -4,10 +4,7 @@ platform :ios do
 
     desc "Build for testing"
     lane build_for_testing do |options|
-        run_tests(
-            derived_data_path: "my_folder",
-            build_for_testing: true
-        )
+        scan
     end
     
     desc "Run test from derived data"
