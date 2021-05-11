@@ -55,10 +55,10 @@ jobs:
       env:
         WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }} 
       run: |
+        bundle exec fastlane add_plugin discord_notifier
         bundle exec fastlane send
     - name: Build and Run
       run: |
-        bundle exec fastlane add_plugin discord_notifier
         bundle exec fastlane build_for_testing
         bundle exec fastlane tests_run
 
