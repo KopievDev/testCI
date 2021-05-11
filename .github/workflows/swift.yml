@@ -56,6 +56,7 @@ jobs:
         bundle exec fastlane send
     - name: Build and Run
       run: |
+        bundle exec fastlane add_plugin discord_notifier
         bundle exec fastlane build_and_run_test
         
     - name: Show succes notify 
