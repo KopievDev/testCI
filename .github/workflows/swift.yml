@@ -59,8 +59,10 @@ jobs:
     - name: Build and Run
       run: |
         bundle exec fastlane add_plugin discord_notifier
-        bundle exec fastlane build_and_run_test
-        
+        bundle exec fastlane build_for_testing
+        bundle exec fastlane tests_run
+
+
     - name: Show succes notify 
       uses: sarisia/actions-status-discord@v1
       if: success()
