@@ -20,3 +20,11 @@ jobs:
     - name: Build and Run
       run: |
         bundle exec fastlane build_and_run_test
+    - name: send message
+      uses: appleboy/discord-action@master
+      with:
+        webhook_id: ${{ secrets.WEBHOOK_ID }}
+        webhook_token: ${{ secrets.WEBHOOK_TOKEN }}
+        color: "#48f442"
+        username: "GitHub Bot"
+        message: "A new commit has been pushed with custom color."
