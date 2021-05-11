@@ -37,7 +37,7 @@ jobs:
           description: "Build and deploy to GitHub Pages"
           color: 0x0000ff
           username: GitHub Notification
-          avatar_url: ${{ secrets.AVATAR_URL }}
+          avatar_url: ${{ secrets.AVATAR_URL }}  
 
   build:
 
@@ -50,10 +50,14 @@ jobs:
       with:
         ruby-version: 2.6
         bundler-cache: true
+    
+    - name: Send message
+      run: |
+        bundle exec fastlane send
     - name: Build and Run
       run: |
         bundle exec fastlane build_and_run_test
-        bundle exec fastlane send
+        
     - name: Show succes notify 
       uses: sarisia/actions-status-discord@v1
       if: success()
