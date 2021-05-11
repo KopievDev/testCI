@@ -26,25 +26,13 @@ jobs:
   
   testSend:
   
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macOS-latest]
+    runs-on: macos-latest
 
     steps:
-    - name: Send start notification to Discord
-      uses: appleboy/discord-action@master
+    - uses: sarisia/actions-status-discord@v1
+      if: always()
       with:
-          webhook_id: ${{ secrets.WEBHOOK_ID }}
-          webhook_token: ${{ secrets.WEBHOOK_TOKEN }}
-          color: "#8b9b9c"
-          username: "GitHub Botooonnn"
-          message: |
-            Tests started by 👤 ${{ github.actor }}
-            From `${{ github.head_ref }}` to `${{ github.base_ref }}`
-            Event `${{ github.event_name }}`
-            PR ${{ github.event.number }}: ${{ github.event.pull_request.url }}
+          webhook: ${{ secrets.WEBHOOK_URL }}
 
   build:
 
