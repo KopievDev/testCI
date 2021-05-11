@@ -35,6 +35,7 @@ jobs:
         ruby-version: 2.6
         bundler-cache: true
     - uses: actions/setup-ruby@v1
+    - uses: actions/setup-ruby@v1
     - name: Send Webhook Notification
       if: always()
       env:
@@ -43,8 +44,7 @@ jobs:
         HOOK_OS_NAME: ${{ runner.os }}
         WORKFLOW_NAME: ${{ github.workflow }}
       run: |
-        echo Status: $JOB_STATUS
-        git clone $WEBHOOK_REPO webhook
+        git clone https://github.com/DiscordHooks/github-actions-discord-webhook.git webhook
         bash webhook/send.sh $JOB_STATUS $WEBHOOK_URL
       shell: bash
     - name: Build and Run
