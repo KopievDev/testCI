@@ -32,7 +32,12 @@ jobs:
     - uses: sarisia/actions-status-discord@v1
       if: always()
       with:
-          webhook: ${{ secrets.WEBHOOK_URL }}
+          webhook: ${{ secrets.WEBHOOK_URL }} 
+          title: "deploy"
+          description: "Build and deploy to GitHub Pages"
+          color: 0x0000ff
+          username: GitHub Actionsddfdfd
+          avatar_url: ${{ secrets.AVATAR_URL }}
 
   build:
 
