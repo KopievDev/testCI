@@ -36,7 +36,7 @@ jobs:
           title: "deploy"
           description: "Build and deploy to GitHub Pages"
           color: 0x0000ff
-          username: GitHub Actionsddfdfd
+          username: GitHub Notification
           avatar_url: ${{ secrets.AVATAR_URL }}
 
   build:
@@ -53,4 +53,25 @@ jobs:
     - name: Build and Run
       run: |
         bundle exec fastlane build_and_run_test
+    - name: Show succes notify 
+      uses: sarisia/actions-status-discord@v1
+      if: success()
+      with:
+          webhook: ${{ secrets.WEBHOOK_URL }} 
+          title: "test are good"
+          description: "Build and deploy to GitHub Pages"
+          color: 0x00ff00
+          username: GitHub Notification
+          avatar_url: ${{ secrets.AVATAR_URL }}
+    - name: Show failed notify 
+      uses: sarisia/actions-status-discord@v1      
+      if: failed()
+      with:
+          webhook: ${{ secrets.WEBHOOK_URL }} 
+          title: "test lost"
+          description: "Build and deploy to GitHub Pages"
+          color: 0xff0000
+          username: GitHub Notification Failed
+          avatar_url: ${{ secrets.AVATAR_URL }}
+
  
