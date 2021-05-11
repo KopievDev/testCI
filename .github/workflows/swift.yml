@@ -14,10 +14,10 @@ jobs:
     - name: Send start notification to Discord
       uses: appleboy/discord-action@master
       with:
-          webhook_id: ${{ secrets.DISCORD_WEBHOOK_ID }}
-          webhook_token: ${{ secrets.DISCORD_WEBHOOK_TOKEN }}
+          webhook_id: ${{ secrets.WEBHOOK_ID }}
+          webhook_token: ${{ secrets.WEBHOOK_TOKEN }}
           color: "#8b9b9c"
-          username: "GitHub Bot"
+          username: "GitHub Botooonnn"
           message: |
             Tests started by 👤 ${{ github.actor }}
             From `${{ github.head_ref }}` to `${{ github.base_ref }}`
