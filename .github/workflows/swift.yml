@@ -52,6 +52,8 @@ jobs:
         bundler-cache: true
     
     - name: Send message
+      env:
+        WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }} 
       run: |
         bundle exec fastlane send
     - name: Build and Run
