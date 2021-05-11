@@ -7,50 +7,15 @@ on:
     branches: [ master ]
 
 jobs:
-  send:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Send start notification to Discord
-      uses: appleboy/discord-action@master
-      with:
-          webhook_id: ${{ secrets.WEBHOOK_ID }}
-          webhook_token: ${{ secrets.WEBHOOK_TOKEN }}
-          color: "#8b9b9c"
-          username: "GitHub Botooonnn"
-          message: |
-            Tests started by 👤 ${{ github.actor }}
-            From `${{ github.head_ref }}` to `${{ github.base_ref }}`
-            Event `${{ github.event_name }}`
-            PR ${{ github.event.number }}: ${{ github.event.pull_request.url }}
-  
-  testSend:
-  
-    runs-on: macos-latest
-
-    steps:
-    - uses: sarisia/actions-status-discord@v1
-      if: always()
-      with:
-          webhook: ${{ secrets.WEBHOOK_URL }} 
-          title: "deploy"
-          description: "Build and deploy to GitHub Pages"
-          color: 0x0000ff
-          username: GitHub Notification
-          avatar_url: ${{ secrets.AVATAR_URL }}  
-
   build:
-
     runs-on: macos-latest
-
     steps:
-    
     - uses: actions/checkout@v2
     - uses: ruby/setup-ruby@v1
       with:
         ruby-version: 2.6
         bundler-cache: true
-    
+  
     - name: Send message
       env:
         WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }} 
