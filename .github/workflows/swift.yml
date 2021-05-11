@@ -65,7 +65,7 @@ jobs:
           avatar_url: ${{ secrets.AVATAR_URL }}
     - name: Show failed notify 
       uses: sarisia/actions-status-discord@v1      
-      if: failed()
+      if: failure()
       with:
           webhook: ${{ secrets.WEBHOOK_URL }} 
           title: "test lost"
