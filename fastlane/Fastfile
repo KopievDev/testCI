@@ -3,12 +3,12 @@ default_platform(:ios)
 platform :ios do
 
     desc "Build for testing"
-    lane build_for_testing do |options|
+    lane :build_for_testing do |options|
         scan
     end
     
     desc "Run test from derived data"
-    lane tests_run do |options|
+    lane :tests_run do |options|
         run_tests(
             derived_data_path: "my_folder",
             test_without_building: true
@@ -16,7 +16,7 @@ platform :ios do
     end
     
     desc "Build and test from building folder"
-    lane build_and_test do |options|
+    lane :build_and_test do |options|
         build_for_testing
         tests_run
     end
