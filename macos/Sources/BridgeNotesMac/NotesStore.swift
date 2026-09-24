@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import SQLite3
 
 @MainActor
 final class NotesStore: ObservableObject {
@@ -13,6 +14,7 @@ final class NotesStore: ObservableObject {
             .appendingPathComponent("BridgeNotes", isDirectory: true)
         try? fm.createDirectory(at: base, withIntermediateDirectories: true)
         fileURL = base.appendingPathComponent("notes.json")
+        migrateLegacyDatabaseIfNeeded()
         load()
     }
 
@@ -83,5 +85,53 @@ final class NotesStore: ObservableObject {
     private func persist() {
         guard let data = try? JSONEncoder().encode(notes) else { return }
         try? data.write(to: fileURL, options: .atomic)
+    }
+
+    private func migrateLegacyDatabaseIfNeeded() {
+        let fm = FileManager.default
+        guard !fm.fileExists(atPath: fileURL.path) else { return }
+
+        let home = fm.homeDirectoryForCurrentUser
+        let candidates = [
+            home.appendingPathComponent("Downloads/BridgeNotes-Mac/bridge_notes.db"),
+            home.appendingPathComponent("Downloads/BridgeNotes-Mac-Companion/bridge_notes.db")
+        ]
+
+        for url in candidates where fm.fileExists(atPath: url.path) {
+            var db: OpaquePointer?
+            guard sqlite3_open_v2(url.path, &db, SQLITE_OPEN_READONLY, nil) == SQLITE_OK,
+                  let db else { continue }
+            defer { sqlite3_close(db) }
+
+            let sql = "SELECT id,title,body,pinned,deleted,created_at,updated_at FROM notes"
+            var statement: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK,
+                  let statement else { continue }
+            defer { sqlite3_finalize(statement) }
+
+            var imported: [Note] = []
+            while sqlite3_step(statement) == SQLITE_ROW {
+                func text(_ index: Int32) -> String {
+                    guard let ptr = sqlite3_column_text(statement, index) else { return "" }
+                    return String(cString: ptr)
+                }
+
+                imported.append(Note(
+                    id: text(0),
+                    title: text(1),
+                    body: text(2),
+                    pinned: sqlite3_column_int(statement, 3) != 0,
+                    deleted: sqlite3_column_int(statement, 4) != 0,
+                    createdAt: sqlite3_column_int64(statement, 5),
+                    updatedAt: sqlite3_column_int64(statement, 6)
+                ))
+            }
+
+            if !imported.isEmpty,
+               let data = try? JSONEncoder().encode(imported) {
+                try? data.write(to: fileURL, options: .atomic)
+                return
+            }
+        }
     }
 }
