@@ -177,6 +177,22 @@ final class BridgeServer: ObservableObject {
            token.count == 6 {
             return token
         }
+
+        let fm = FileManager.default
+        let home = fm.homeDirectoryForCurrentUser
+        let legacy = [
+            home.appendingPathComponent("Downloads/BridgeNotes-Mac/bridge_notes_token.txt"),
+            home.appendingPathComponent("Downloads/BridgeNotes-Mac-Companion/bridge_notes_token.txt")
+        ]
+
+        for oldURL in legacy {
+            if let token = try? String(contentsOf: oldURL, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
+               token.count == 6 {
+                try? token.write(to: url, atomically: true, encoding: .utf8)
+                return token
+            }
+        }
+
         let token = newToken()
         try? token.write(to: url, atomically: true, encoding: .utf8)
         return token
