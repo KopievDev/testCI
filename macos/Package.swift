@@ -10,7 +10,10 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "BridgeNotesMac",
-            path: "Sources/BridgeNotesMac"
+            path: "Sources/BridgeNotesMac",
+            linkerSettings: [
+                .linkedLibrary("sqlite3")
+            ]
         )
     ]
 )
