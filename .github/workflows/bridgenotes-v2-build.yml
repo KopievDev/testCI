@@ -10,8 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Extract BridgeNotes 2.0
-        run: tar xzf bridgenotes-v2-source.tgz
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -26,12 +24,12 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Build Android APK
-        working-directory: BridgeNotes
+        working-directory: bridgenotes
         env:
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: gradle :app:assembleDebug --stacktrace
       - name: Prepare APK
-        run: cp BridgeNotes/app/build/outputs/apk/debug/app-debug.apk BridgeNotes-2.0.apk
+        run: cp bridgenotes/app/build/outputs/apk/debug/app-debug.apk BridgeNotes-2.0.apk
       - uses: actions/upload-artifact@v4
         with:
           name: BridgeNotes-Android-2.0
@@ -42,13 +40,11 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Extract BridgeNotes 2.0
-        run: tar xzf bridgenotes-v2-source.tgz
       - name: Build native macOS app
-        working-directory: BridgeNotes/macos
-        run: ./build-app.sh
+        working-directory: macos
+        run: chmod +x build-app.sh && ./build-app.sh
       - uses: actions/upload-artifact@v4
         with:
           name: BridgeNotes-macOS-2.0
-          path: BridgeNotes/macos/BridgeNotes-macOS.zip
+          path: macos/BridgeNotes-macOS.zip
           if-no-files-found: error
