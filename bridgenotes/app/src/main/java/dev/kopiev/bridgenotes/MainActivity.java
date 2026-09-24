@@ -8,6 +8,8 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
@@ -39,6 +41,18 @@ public final class MainActivity extends Activity {
     private TextView status;
     private SharedPreferences prefs;
     private final List<Note> notes = new ArrayList<>();
+    private final Handler foregroundSync = new Handler(Looper.getMainLooper());
+    private boolean resumed;
+
+    private static final long FOREGROUND_SYNC_MS = 20_000L;
+
+    private final Runnable periodicSync = new Runnable() {
+        @Override public void run() {
+            if (!resumed) return;
+            autoSync(false);
+            foregroundSync.postDelayed(this, FOREGROUND_SYNC_MS);
+        }
+    };
 
     private static final int BG = Color.rgb(248, 250, 252);
     private static final int CARD = Color.WHITE;
@@ -55,8 +69,30 @@ public final class MainActivity extends Activity {
 
         db = new NotesDb(this);
         prefs = getSharedPreferences("bridge_notes", MODE_PRIVATE);
+        AutoSyncScheduler.ensureScheduled(this);
         setContentView(buildUi());
         refresh();
+        updateIdleStatus();
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        resumed = true;
+        refresh();
+        foregroundSync.removeCallbacks(periodicSync);
+        foregroundSync.postDelayed(periodicSync, 600L);
+    }
+
+    @Override protected void onPause() {
+        resumed = false;
+        foregroundSync.removeCallbacks(periodicSync);
+        super.onPause();
+    }
+
+    @Override protected void onDestroy() {
+        foregroundSync.removeCallbacksAndMessages(null);
+        if (db != null) db.close();
+        super.onDestroy();
     }
 
     private View buildUi() {
@@ -93,7 +129,7 @@ public final class MainActivity extends Activity {
         root.addView(search, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(50)));
 
         status = new TextView(this);
-        status.setText("Локально • нажмите ⟳ для синхронизации");
+        status.setText("Автосинхронизация включена");
         status.setTextColor(MUTED);
         status.setTextSize(12);
         status.setPadding(dp(2), dp(8), 0, dp(7));
@@ -205,7 +241,8 @@ public final class MainActivity extends Activity {
             db.upsert(draft);
             dialog.dismiss();
             refresh();
-            status.setText("Есть локальные изменения • нажмите ⟳");
+            status.setText("Сохранено локально • отправляю на Mac…");
+            autoSync(false);
         }));
         dialog.show();
     }
@@ -224,7 +261,8 @@ public final class MainActivity extends Activity {
                     n.updatedAt = System.currentTimeMillis();
                     db.upsert(n);
                     refresh();
-                    status.setText("Есть локальные изменения • нажмите ⟳");
+                    status.setText("Удалено локально • синхронизирую…");
+                    autoSync(false);
                 })
                 .show();
     }
@@ -248,7 +286,7 @@ public final class MainActivity extends Activity {
         box.addView(label("Код подключения"));
         box.addView(token, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(54)));
 
-        TextView tip = label("Mac и Android должны быть в одной Wi‑Fi сети. Адрес и код показывает companion на Mac.");
+        TextView tip = label("BridgeNotes 2.0 синхронизируется автоматически. Пока используется локальная Wi‑Fi сеть; кнопка ⟳ остаётся для ручной проверки.");
         tip.setPadding(0, dp(12), 0, 0);
         box.addView(tip);
 
@@ -261,7 +299,9 @@ public final class MainActivity extends Activity {
                             .putString("sync_url", url.getText().toString().trim())
                             .putString("token", token.getText().toString().trim())
                             .apply();
-                    status.setText("Настройки сохранены • нажмите ⟳");
+                    AutoSyncScheduler.ensureScheduled(this);
+                    status.setText("Настройки сохранены • проверяю соединение…");
+                    autoSync(true);
                 })
                 .show();
     }
@@ -275,39 +315,55 @@ public final class MainActivity extends Activity {
     }
 
     private void syncNow() {
-        String url = prefs.getString("sync_url", "").trim();
-        String token = prefs.getString("token", "").trim();
-        if (url.isEmpty() || token.isEmpty()) {
+        if (!SyncEngine.isConfigured(this)) {
             showSettings();
             return;
         }
-
         status.setText("Синхронизация…");
-        new Thread(() -> {
-            try {
-                JSONArray remote = SyncClient.sync(url, token, db.listAllIncludingDeleted());
-                int count = remote == null ? 0 : remote.length();
-                if (remote != null) {
-                    for (int i = 0; i < remote.length(); i++) {
-                        db.mergeRemote(Note.fromJson(remote.getJSONObject(i)));
-                    }
-                }
+        autoSync(true);
+    }
 
+    private void autoSync(boolean showToast) {
+        if (!SyncEngine.isConfigured(this)) {
+            updateIdleStatus();
+            return;
+        }
+        SyncEngine.syncAsync(getApplicationContext(), new SyncEngine.Callback() {
+            @Override public void onSuccess(int noteCount) {
                 runOnUiThread(() -> {
                     refresh();
-                    status.setText("Синхронизировано • " +
-                            DateFormat.getTimeInstance(DateFormat.SHORT).format(new Date()));
-                    Toast.makeText(this, "Готово: " + count + " заметок", Toast.LENGTH_SHORT).show();
-                });
-            } catch (Exception e) {
-                runOnUiThread(() -> {
-                    status.setText("Ошибка синхронизации");
-                    Toast.makeText(this,
-                            "Не удалось подключиться к Mac: " + e.getMessage(),
-                            Toast.LENGTH_LONG).show();
+                    long ts = prefs.getLong("last_sync", System.currentTimeMillis());
+                    status.setText("Автосинхронизация • " +
+                            DateFormat.getTimeInstance(DateFormat.SHORT).format(new Date(ts)));
+                    if (showToast && noteCount >= 0) {
+                        Toast.makeText(MainActivity.this, "Синхронизировано", Toast.LENGTH_SHORT).show();
+                    }
                 });
             }
-        }, "bridge-sync").start();
+
+            @Override public void onError(Exception error) {
+                runOnUiThread(() -> {
+                    status.setText("Mac недоступен • повторю автоматически");
+                    if (showToast) {
+                        Toast.makeText(MainActivity.this,
+                                "Не удалось синхронизироваться: " + error.getMessage(),
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+        });
+    }
+
+    private void updateIdleStatus() {
+        if (status == null) return;
+        if (!SyncEngine.isConfigured(this)) {
+            status.setText("Локально • нажмите ⚙ для подключения Mac");
+            return;
+        }
+        long last = prefs.getLong("last_sync", 0L);
+        if (last == 0L) status.setText("Автосинхронизация включена");
+        else status.setText("Автосинхронизация • " +
+                DateFormat.getTimeInstance(DateFormat.SHORT).format(new Date(last)));
     }
 
     private final class NoteAdapter extends BaseAdapter {
