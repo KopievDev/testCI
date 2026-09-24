@@ -8,6 +8,7 @@ struct ContentView: View {
     @State private var search = ""
     @State private var draft = Note.empty()
     @State private var hasDraft = false
+    @State private var autoSaveTask: Task<Void, Never>?
 
     private var filtered: [Note] {
         let q = search.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -68,6 +69,9 @@ struct ContentView: View {
             editor
                 .frame(minWidth: 520, minHeight: 420)
         }
+        .onChange(of: draft.title) { _ in scheduleAutoSave() }
+        .onChange(of: draft.body) { _ in scheduleAutoSave() }
+        .onChange(of: draft.pinned) { _ in scheduleAutoSave() }
         .onChange(of: selectedID) { newValue in
             guard let note = store.note(id: newValue) else { return }
             draft = note
@@ -178,8 +182,20 @@ struct ContentView: View {
 
     private func saveCurrent() {
         guard hasDraft else { return }
+        autoSaveTask?.cancel()
         store.save(draft)
         if let latest = store.note(id: draft.id) { draft = latest }
+    }
+
+    private func scheduleAutoSave() {
+        guard hasDraft, selectedID == draft.id else { return }
+        autoSaveTask?.cancel()
+        let snapshot = draft
+        autoSaveTask = Task {
+            try? await Task.sleep(nanoseconds: 700_000_000)
+            guard !Task.isCancelled else { return }
+            store.save(snapshot)
+        }
     }
 
     private func deleteCurrent() {
