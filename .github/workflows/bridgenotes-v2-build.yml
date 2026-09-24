@@ -1,0 +1,54 @@
+name: Build BridgeNotes 2.0
+
+on:
+  push:
+    branches:
+      - bridgenotes-v2-build-20260924
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract BridgeNotes 2.0
+        run: tar xzf bridgenotes-v2-source.tgz
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Android SDK packages
+        run: |
+          export ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
+          export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH"
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Build Android APK
+        working-directory: BridgeNotes
+        env:
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: gradle :app:assembleDebug --stacktrace
+      - name: Prepare APK
+        run: cp BridgeNotes/app/build/outputs/apk/debug/app-debug.apk BridgeNotes-2.0.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BridgeNotes-Android-2.0
+          path: BridgeNotes-2.0.apk
+          if-no-files-found: error
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract BridgeNotes 2.0
+        run: tar xzf bridgenotes-v2-source.tgz
+      - name: Build native macOS app
+        working-directory: BridgeNotes/macos
+        run: ./build-app.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BridgeNotes-macOS-2.0
+          path: BridgeNotes/macos/BridgeNotes-macOS.zip
+          if-no-files-found: error
