@@ -1,0 +1,44 @@
+name: Ochakovo Shift Build
+
+on:
+  push:
+    branches:
+      - temp/ochakovo-shift-build
+    paths:
+      - "ochakovo-build/**"
+      - ".github/workflows/ochakovo-build.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Restore project
+        run: |
+          mkdir -p /tmp/ochakovo
+          base64 -d ochakovo-build/project.tgz.b64 > /tmp/ochakovo/project.tgz
+          tar -xzf /tmp/ochakovo/project.tgz -C /tmp/ochakovo
+
+      - name: Build debug APK
+        working-directory: /tmp/ochakovo/OchakovoShift
+        run: gradle --no-daemon :app:assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: OchakovoShift-debug-apk
+          path: /tmp/ochakovo/OchakovoShift/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
